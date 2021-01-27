@@ -7,17 +7,27 @@ define slave::pbuilder_setup (
   $backports  = false,
   $nodesource = true,
   $puppetlabs = true,
+  $pbuilder_type = 'pbuilder',
 ) {
 
-  pbuilder { $name:
-    ensure    => $ensure,
-    arch      => $arch,
-    release   => $release,
-    methodurl => $apturl,
-  }
-
-  file { "/etc/pbuilder/${name}/apt.config/sources.list.d":
-    ensure  => bool2str($ensure == present, 'directory', 'absent'),
+  case $pbuilder_type {
+    'pbuilder': {
+      pbuilder { $name:
+        ensure    => $ensure,
+        arch      => $arch,
+        release   => $release,
+        methodurl => $apturl,
+      }
+      $update_pbuilder = "update_pbuilder_${name}"
+    }
+    'cowbuilder': {
+      pbuilder::cowbuilder { "${name}":
+        ensure     => $ensure,
+        arch       => $arch,
+        dist       => $release,
+      }
+      $update_pbuilder = "update cowbuilder ${name}"
+    }
   }
 
   file { "/etc/pbuilder/${name}/apt.config/sources.list.d/debian.list":
@@ -25,13 +35,13 @@ define slave::pbuilder_setup (
     content => $aptcontent,
   }
   if $ensure == present {
-    File["/etc/pbuilder/${name}/apt.config/sources.list.d/debian.list"] ~> Exec["update_pbuilder_${name}"]
+    File["/etc/pbuilder/${name}/apt.config/sources.list.d/debian.list"] ~> Exec[$update_pbuilder]
   }
 
   file { "/usr/local/bin/pdebuild-${name}":
     ensure  => $ensure,
     mode    => '0775',
-    content => "#!/bin/bash\n pdebuild --use-pdebuild-internal --configfile /etc/pbuilder/${name}/pbuilderrc --architecture ${arch}\n",
+    content => "#!/bin/bash\n pdebuild --use-pdebuild-internal --configfile /etc/pbuilder/${name}/pbuilderrc --architecture ${arch} --pbuilder ${pbuilder_type}\n",
   }
 
   file { "/etc/pbuilder/${name}/hooks/F70aptupdate":
