@@ -1,0 +1,14 @@
+{
+  "branchPrefix": "foreman-renovate/",
+  "dryRun": "full",
+  "username": "renovate-release",
+  "gitAuthor": "Renovate Bot <bot@renovateapp.com>",
+  "onboarding": false,
+  "platform": "github",
+  "includeForks": true,
+  "packageRules": [
+    {
+      "matchManagers": ["puppet"]
+    }
+  ]
+}
